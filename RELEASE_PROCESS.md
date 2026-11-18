@@ -1,6 +1,6 @@
 # Release process
 
-This repository hosts public release documentation and release assets only. Keep it separate from the private source repository at [taalkhalaf/nbrsplayer](https://github.com/taalkhalaf/nbrsplayer). Never push source code, debug symbols, secrets, signing keys, or unrelated build outputs here.
+This repository hosts public release documentation and release assets only. Keep it separate from the private source repository at [taalkhalaf/nbrsplayer](https://github.com/taalkhalaf/nbrsplayer). Never push nbrsplayer application source code, debug symbols, secrets, signing keys, or unrelated build outputs here. Matching sources for redistributed native dependencies may be attached as release assets under the rules below.
 
 ## Release gate
 
@@ -14,7 +14,7 @@ Do not publish an official release until all of the following are confirmed:
 
 ## Prepare a release
 
-1. **Choose and verify the version.** Use the approved semantic version (for example, `1.0.0`) consistently in the application, installer metadata, release title, and Git tag (for example, `v1.0.0`). Confirm the tag points to the reviewed source commit in the private repository. Do not publish source code here.
+1. **Choose and verify the version.** Use the approved semantic version (for example, `1.0.0`) consistently in the application, installer metadata, release title, and Git tag (for example, `v1.0.0`). Confirm the tag points to the reviewed source commit in the private repository. Do not publish nbrsplayer application source code here.
 2. **Build the Setup installer.** Produce the intended Windows installer only. Do not create or upload a portable package. Record its exact filename and SHA-256 digest.
 3. **Prepare release notes.** Start from [RELEASE_NOTES_TEMPLATE.md](RELEASE_NOTES_TEMPLATE.md). Include only changes present in the build.
 4. **Generate the signed update metadata using the application's existing implementation.** Follow the documented procedure and exact format supplied by the private project's Codex work. Do not invent a schema, signing algorithm, key format, command, or verification behavior. Never put a private signing key in this repository, in a release asset, in source control, or in an issue.
@@ -26,7 +26,7 @@ Do not publish an official release until all of the following are confirmed:
    - Verify the Setup installer signature if the build is Authenticode-signed, and confirm its publisher and signature status.
    - Install and launch the Setup build on a supported Windows 10/11 test machine. Check upgrade behavior as applicable.
    - Test that an installed copy of the application detects the intended update, validates its signed metadata, downloads the installer, checks integrity, and handles invalid metadata or failed downloads safely. Do not use real users as the test.
-7. **Create a GitHub Release** in this repository for the matching tag, using the release notes. Upload the Setup installer, the signed update metadata required by the application, and the checksum file. These metadata files are release support assets; the only application package is Setup. Do not upload source archives, portable builds, private keys, or unrelated binaries.
+7. **Create a GitHub Release** in this repository for the matching tag, using the release notes. Upload the Setup installer, the signed update metadata required by the application, and the checksum file. These metadata files are release support assets; the only application package is Setup. Also attach the exact corresponding-source and license package for the native dependencies and its SHA-256 file. Do not upload nbrsplayer application source archives, portable builds, private keys, or unrelated binaries.
 8. **Verify the published release.** Confirm the release is associated with the expected tag and is published only after the release gate passes. Re-download the published assets and repeat the digest and signature checks. Run the application's update check against the published metadata.
 9. **Record the result** in the private project's progress/changelog documentation, including version, tag, asset names, checks performed, and any follow-up. Do not copy private implementation details or secrets into this public repository.
 
@@ -44,3 +44,22 @@ Record these in the private project documentation and use them here without gues
 - Required release asset ordering or publication sequence, especially if the app can observe a partially published release.
 
 Until these details are documented and checked against the implementation, this guide intentionally remains procedural rather than specifying a manifest format or signing commands.
+
+## Native dependency corresponding sources
+
+- Supply `nbrsplayer-native-compliance-1.0.0.zip` and its `.sha256` with the matching LGPL Setup candidate, using the actual versioned filenames for later releases.
+- This archive contains corresponding upstream native dependency sources, licenses, notices and build/relink instructions. Keep nbrsplayer application sources in the private development repository.
+- Verify the archive digest against `mpv.lock.json` in the authenticated Setup payload and preserve the library replacement and debugging rights documented in the installed notices.
+- Publish the source assets together with their matching Setup, and link them from the release notes. Review the component inventory whenever the native payload changes.
+
+
+
+## Confirmed update format for 1.0.0
+
+- Stable channel: `https://api.github.com/repos/taalkhalaf/nbrsplayer-releases/releases/latest`. Stable tag: `v1.0.0`. Drafts and prereleases are excluded.
+- Assets: `nbrsplayer-update.json` and `nbrsplayer-update.sig`, plus `nbrsplayer-Setup-1.0.0.exe` and its `.sha256`. The native corresponding-source package and its checksum must accompany the matching Setup.
+- The manifest is UTF-8 without BOM. Preserve its exact bytes. Schema 1 fields are `Schema`, `Product` (`nbrsplayer/windows-x64/stable`), `Version`, `File`, `Bytes`, `Sha256`, `Notes`. The application derives asset URLs from this repository and the stable tag; the manifest contains no arbitrary installer URL.
+- The detached signature is ECDSA P-256/SHA-256, IEEE P1363 encoding, exactly 64 bytes. The public key is pinned in the application. SHA-256 of its DER SubjectPublicKeyInfo is `6478575A86930EA16988E6B314CD16645078C5F8070DDDFFC4CEC8DFD59E6779`.
+- The current Setup has no Authenticode signature. Its authenticity is bound to the pinned manifest signature and its exact authorized size/SHA-256. The client rejects altered manifests and installers, restricts HTTPS download origins, and verifies staged bytes again before execution.
+- A checksum sidecar uses a lowercase SHA-256 digest, two spaces and the exact asset filename. A checksum alone is not proof of authenticity.
+- Stage all assets in a Draft and verify them before publishing. A Draft requires authentication and does not exercise anonymous stable discovery. Use an explicitly isolated prerelease for public transport tests; never mark it as Latest. Record the real stable-channel verification after the approved official release.
